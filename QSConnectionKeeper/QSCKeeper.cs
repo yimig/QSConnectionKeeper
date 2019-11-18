@@ -10,6 +10,7 @@ using System.ServiceProcess;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Timers;
 
 namespace QSConnectionKeeper
 {
@@ -17,28 +18,24 @@ namespace QSConnectionKeeper
     {
         public QSCKeeper()
         {
+            this.ServiceName = "qsckeeper";
+            this.CanStop = true;
+            this.CanPauseAndContinue = true;
+            this.AutoLog = true;
+            System.Timers.Timer aTimer = new System.Timers.Timer();
+            aTimer.Elapsed += new ElapsedEventHandler(TimedEvent);
+            aTimer.Interval = Convert.ToInt32(ConfigurationManager.AppSettings["IntervalHour"]) * 3600 +
+                              Convert.ToInt32(ConfigurationManager.AppSettings["IntervalMin"]) * 60 +
+                              Convert.ToInt32(ConfigurationManager.AppSettings["IntervalSec"]);
+            aTimer.Enabled = true;
             InitializeComponent();
         }
 
-        protected override void OnStart(string[] args)
+        private void TimedEvent(object source, ElapsedEventArgs e)         //运行期间执行  
         {
-            // TODO: 在此处添加代码以启动服务。
-            ThreadStart start=new ThreadStart(() =>
-            {
-                while (true)
-                {
-                    try
-                    {
-                        if(!TestConnect())ConnectionStart();
-                        Thread.Sleep(new TimeSpan(0,2,0));
-                    }
-                    catch { }
-                }
-            });
-            Thread th=new Thread(start);
-            th.IsBackground = true;
-            th.Start();
+            if (!TestConnect()) ConnectionStart();
         }
+
 
         protected override void OnStop()
         {
@@ -55,7 +52,7 @@ namespace QSConnectionKeeper
 
         private bool TestConnect()
         {
-            string url = "www.baidu.com";
+            string url = ConfigurationManager.AppSettings["PingTarget"];
             bool isConnect =false;
             Ping ping=new Ping();
             try
